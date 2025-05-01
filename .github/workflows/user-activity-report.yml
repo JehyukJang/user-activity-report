@@ -1,0 +1,39 @@
+name: 'User Activity Report'
+
+on:
+  schedule:
+    # Every Thursday 19:00 KST → 10:00 UTC
+    - cron: '0 10 * * 4'
+  workflow_dispatch:
+
+jobs:
+  create-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set date range
+        id: set-dates
+        run: |
+          # Calculate last Friday
+          LAST_FRIDAY=$(date -d "last Friday" +'%Y-%m-%d')
+          # Calculate this Thursday
+          THIS_THURSDAY=$(date -d "this Thursday" +'%Y-%m-%d')
+          echo "SINCE=$LAST_FRIDAY" >> $GITHUB_ENV
+          echo "UNTIL=$THIS_THURSDAY" >> $GITHUB_ENV
+      - name: Generate User Activity Report
+        uses: sorekz/user-activity-report@v1
+        with:
+          token: ${{ secrets.ACCESS_TOKEN }}
+          organization: 'tokamak-network'
+          since: '${{ env.SINCE }}T00:00:00Z'
+          until: '${{ env.UNTIL }}T23:59:59Z'
+          analyze-commits: 'true'
+          create-json: 'data.json'
+
+      - name: Upload Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: data.json
